@@ -1,0 +1,1 @@
+# Captura-autom-tica-de-posiciones-con-AI-Visi-n
