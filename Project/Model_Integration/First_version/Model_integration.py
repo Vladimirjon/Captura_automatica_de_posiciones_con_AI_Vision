@@ -24,7 +24,8 @@ def main():
     cap = cv2.VideoCapture(url)
 
     # Cargar el modelo YOLOv8 entrenado localmente (asegúrate de que best.pt existe)
-    model = YOLO("runs/detetc/train3/weights/best.pt")
+    model = YOLO(r"C:\Users\johan\OneDrive\Escritorio\Universidad\Proyectos Intersemestrales\Captura_automatica_de_posiciones_con_AI_Vision\runs\detetc\train3\weights\best.pt")
+
 
     # Inicializar el diccionario y detector ArUco
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
