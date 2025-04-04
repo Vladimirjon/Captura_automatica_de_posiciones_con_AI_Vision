@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 3
+names: ['arrow', 'black_amazon', 'white_amazon']
+
+roboflow:
+  workspace: visual-computing-4jlgd
+  project: amazons-game-recognition
+  version: 3
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/visual-computing-4jlgd/amazons-game-recognition/dataset/3
