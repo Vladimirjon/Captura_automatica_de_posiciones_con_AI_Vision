@@ -5,13 +5,27 @@ from ultralytics import YOLO
 import tkinter as tk
 from tkinter import messagebox
 
+import torch
+
+# Guarda la función original de torch.load
+original_torch_load = torch.load
+
+# Define una versión parcheada que fuerce weights_only=False
+def patched_torch_load(*args, **kwargs):
+    kwargs['weights_only'] = False
+    return original_torch_load(*args, **kwargs)
+
+# Reemplaza torch.load con la versión parcheada
+torch.load = patched_torch_load
+
+
 def main():
     # Configuración de la cámara (stream IP)
     url = "http://192.168.0.105:8080/video"
     cap = cv2.VideoCapture(url)
 
     # Cargar el modelo YOLOv8 entrenado (asegúrate de que "best.pt" está en la ruta correcta)
-    model = YOLO("runs/detect/train3/weights/best.pt")
+    model = YOLO(r"C:\Users\johan\OneDrive\Escritorio\Universidad\Proyectos Intersemestrales\Captura_automatica_de_posiciones_con_AI_Vision\runs\detetc\train3\weights\best.pt")
 
     # Configurar el detector de marcadores ArUco
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
