@@ -23,9 +23,6 @@ def detect_grid_hough(warped_image, debug=False):
     gray = cv2.cvtColor(warped_image, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
     edges = cv2.Canny(blurred, 50, 150, apertureSize=3)
-    
-    if debug:
-        cv2.imshow("Edges", edges)
 
     # 2. Parámetros adaptativos para HoughLinesP
     min_line_length = max(warped_image.shape) // 8
@@ -35,26 +32,22 @@ def detect_grid_hough(warped_image, debug=False):
     if lines is None:
         return None, None
 
-    if debug:
-        temp = warped_image.copy()
-        for line in lines:
-            x1, y1, x2, y2 = line[0]
-            cv2.line(temp, (x1, y1), (x2, y2), (0, 0, 255), 2)
-        cv2.imshow("Raw Hough Lines", temp)
-
     # 3. Clasificar líneas en horizontales y verticales
     horizontals = []
     verticals = []
     height, width = warped_image.shape[:2]
+
     for line in lines:
         x1, y1, x2, y2 = line[0]
-        angle = np.degrees(np.arctan2(y2 - y1, x2 - x1))
+        angle = np.degrees(np.arctan2((y2 - y1), (x2 - x1)))
+        # Línea horizontal (cerca de 0° o 180°)
         if abs(angle) < 10 or abs(angle) > 170:
             horizontals.append((y1 + y2) / 2.0)
+        # Línea vertical (cerca de 90°)
         elif 80 < abs(angle) < 100:
             verticals.append((x1 + x2) / 2.0)
 
-    # 4. Agrupar líneas similares (clustering sencillo)
+    # 4. Agrupar líneas similares (clustering)
     def cluster_lines(positions, threshold=20):
         if not positions:
             return []
@@ -70,7 +63,7 @@ def detect_grid_hough(warped_image, debug=False):
     h_lines = cluster_lines(horizontals)
     v_lines = cluster_lines(verticals)
 
-    # 5. Filtrado espacial mejorado: eliminar outliers
+    # 5. Filtrado de outliers
     def filter_outliers(lines, expected_count=9):
         if len(lines) <= expected_count:
             return lines
@@ -90,24 +83,27 @@ def detect_grid_hough(warped_image, debug=False):
     if len(h_lines) == 9 and len(v_lines) == 9:
         return sorted(h_lines), sorted(v_lines)
     else:
-        return np.linspace(0, height, 9), np.linspace(0, width, 9)
+        return (
+            np.linspace(0, height, 9),
+            np.linspace(0, width, 9)
+        )
 
 def main():
     url = "http://192.168.0.105:8080/video"
     cap = cv2.VideoCapture(url)
 
-    # Inicializar el diccionario ArUco y el detector
+    # Diccionario ArUco y detector
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
     aruco_params = cv2.aruco.DetectorParameters()
     detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
 
-    # Configurar la ventana de salida (única ventana)
+    # Solo una ventana
     cv2.namedWindow("Tablero Amazons", cv2.WINDOW_NORMAL)
 
     print_interval = 3.0
     last_print_time = 0.0
 
-    # Cargar el modelo YOLO (asegúrate de que la ruta es correcta)
+    # Cargar modelo YOLO
     model = YOLO(r"C:\Users\johan\OneDrive\Escritorio\Universidad\Proyectos Intersemestrales\Captura_automatica_de_posiciones_con_AI_Vision\runs\detect\train6\weights\best.pt")
 
     if not cap.isOpened():
@@ -120,63 +116,71 @@ def main():
             print("No se pudo leer frame.")
             break
 
-        # Convertir a escala de grises para detectar ArUco
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         corners, ids, _ = detector.detectMarkers(gray)
 
         if ids is not None and len(ids) == 4:
-            # Usar los IDs para fijar la orientación:
-            # a8 (top-left): ID=2, h8 (top-right): ID=3,
-            # h1 (bottom-right): ID=1, a1 (bottom-left): ID=0
-            detected = {}
-            for i, marker_id in enumerate(ids):
-                detected[marker_id[0]] = np.mean(corners[i][0], axis=0)  # centro del marcador
+            # Ordenar marcadores dinámicamente
+            def marker_center(pts):
+                return (np.mean(pts[:, 0]), np.mean(pts[:, 1]))
 
-            if all(k in detected for k in [0, 1, 2, 3]):
-                top_left     = detected[2]
-                top_right    = detected[3]
-                bottom_right = detected[1]
-                bottom_left  = detected[0]
+            points = []
+            for i in range(len(ids)):
+                pts = corners[i][0]
+                points.append(marker_center(pts))
+            points = np.array(points)
 
-                pts_src = np.array([top_left, top_right, bottom_right, bottom_left], dtype=np.float32)
-                pts_dst = np.array([
-                    [0, 0],
-                    [800, 0],
-                    [800, 800],
-                    [0, 800]
-                ], dtype=np.float32)
+            s = points.sum(axis=1)
+            diff = points[:, 0] - points[:, 1]
+            top_left = points[np.argmin(s)]
+            bottom_right = points[np.argmax(s)]
+            top_right = points[np.argmin(diff)]
+            bottom_left = points[np.argmax(diff)]
 
-                M = cv2.getPerspectiveTransform(pts_src, pts_dst)
-                warped = cv2.warpPerspective(frame, M, (800, 800))
+            # Warp a 800x800
+            pts_src = np.array([top_left, top_right, bottom_right, bottom_left], dtype=np.float32)
+            pts_dst = np.array([
+                [0, 0],
+                [800, 0],
+                [800, 800],
+                [0, 800]
+            ], dtype=np.float32)
 
-                # Detección dinámica del grid usando Hough
-                h_lines, v_lines = detect_grid_hough(warped, debug=False)
+            M = cv2.getPerspectiveTransform(pts_src, pts_dst)
+            warped = cv2.warpPerspective(frame, M, (800, 800))
 
-                # Ejecutar inferencia del modelo YOLO sobre la imagen warped
-                results = model.predict(warped, conf=0.5)
-                annotated = results[0].plot()
+            # Detectar líneas con Hough
+            h_lines, v_lines = detect_grid_hough(warped, debug=False)
 
-                # Dibujar la cuadrícula detectada sobre la imagen anotada
+            # Inferencia de YOLO sobre la imagen warped (sin líneas)
+            results = model.predict(warped, conf=0.5)
+            annotated = results[0].plot()  # Imagen con bounding boxes y etiquetas
+
+            # Dibujar la cuadrícula en la imagen YA anotada por YOLO
+            if h_lines is not None and v_lines is not None:
+                for y in h_lines:
+                    cv2.line(annotated, (0, int(y)), (800, int(y)), (0, 255, 0), 2)
+                for x in v_lines:
+                    cv2.line(annotated, (int(x), 0), (int(x), 800), (0, 255, 0), 2)
+
+            # Mensajes de debug cada 3 seg
+            current_time = time.time()
+            if current_time - last_print_time > print_interval:
+                last_print_time = current_time
+                print("Tablero detectado con éxito.")
+                print(f"  top_left: {top_left}")
+                print(f"  top_right: {top_right}")
+                print(f"  bottom_right: {bottom_right}")
+                print(f"  bottom_left: {bottom_left}")
                 if h_lines is not None and v_lines is not None:
-                    for y in h_lines:
-                        cv2.line(annotated, (0, int(y)), (800, int(y)), (0, 255, 0), 2)
-                    for x in v_lines:
-                        cv2.line(annotated, (int(x), 0), (int(x), 800), (0, 255, 0), 2)
+                    print(f"  Líneas horizontales detectadas: {len(h_lines)}")
+                    print(f"  Líneas verticales detectadas: {len(v_lines)}")
+                else:
+                    print("  No se detectó ninguna línea con Hough.")
+                print("")
 
-                current_time = time.time()
-                if current_time - last_print_time > print_interval:
-                    last_print_time = current_time
-                    print("Tablero detectado con éxito (Orientación fija por ID).")
-                    print(f"  a8 (ID=2): {top_left}")
-                    print(f"  h8 (ID=3): {top_right}")
-                    print(f"  h1 (ID=1): {bottom_right}")
-                    print(f"  a1 (ID=0): {bottom_left}")
-                    if h_lines is not None and v_lines is not None:
-                        print(f"  Líneas horizontales: {len(h_lines)}")
-                        print(f"  Líneas verticales: {len(v_lines)}")
-                    print("")
-
-                cv2.imshow("Tablero Amazons", annotated)
+            # Mostrar todo en una sola ventana
+            cv2.imshow("Tablero Amazons", annotated)
 
         key = cv2.waitKey(1) & 0xFF
         if key == 27:  # ESC para salir
