@@ -17,7 +17,7 @@ if __name__ == '__main__':
 
     # Especificar el entrenamiento
     model.train(
-        data=r"C:\Users\johan\OneDrive\Escritorio\Universidad\Proyectos Intersemestrales\Captura_automatica_de_posiciones_con_AI_Vision\Models\Amazons game recognition.v2i.yolov8\data.yaml",
+        data=r"C:\Users\johan\OneDrive\Escritorio\Universidad\Proyectos Intersemestrales\Captura_automatica_de_posiciones_con_AI_Vision\Models\Amazons game recognition.v4i.yolov8\data.yaml",
         epochs=50,
         batch=16,
         imgsz=640,

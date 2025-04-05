@@ -1,6 +1,7 @@
 # Imágenes
 *.jpg
 *.png
+*.cache
 
 # Archivos de texto
 *.txt
