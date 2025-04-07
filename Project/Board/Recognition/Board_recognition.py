@@ -3,7 +3,9 @@ import numpy as np
 import time
 
 def main():
-    url = "http://192.168.0.105:8080/video"
+    # url = "http://192.168.0.105:8080/video"
+    url = "http://192.168.1.4:8080/video"
+    # url = "http://10.209.154.25:8080/video"
     cap = cv2.VideoCapture(url)
 
     # Diccionario ArUco y detector

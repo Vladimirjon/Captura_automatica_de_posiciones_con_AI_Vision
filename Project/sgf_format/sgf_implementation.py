@@ -201,7 +201,10 @@ def print_board(board: List[List[str]]) -> None:
 
 # ==================== Función principal ====================
 def main():
-    url = "http://192.168.0.105:8080/video"
+    # url = "http://192.168.0.105:8080/video"
+    # url = "http://10.209.154.25:8080/video"
+    # url = "http://192.168.228.1:8080/video"
+    url = "http://192.168.1.4:8080/video"
     output_dir = r"C:\Users\johan\OneDrive\Escritorio\Universidad\Proyectos Intersemestrales\Captura_automatica_de_posiciones_con_AI_Vision\Project\sgf_format"
     os.makedirs(output_dir, exist_ok=True)
     movimientos_path = os.path.join(output_dir, "movimientos.txt")
