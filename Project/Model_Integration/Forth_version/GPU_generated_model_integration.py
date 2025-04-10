@@ -93,7 +93,8 @@ def detect_grid_hough(warped_image, debug=False):
         return np.linspace(0, height, 9), np.linspace(0, width, 9)
 
 def main():
-    url = "http://192.168.0.105:8080/video"
+    # url = "http://192.168.0.105:8080/video"
+    url = "http://192.168.1.4:8080/video"
     cap = cv2.VideoCapture(url)
 
     # Inicializar el diccionario ArUco y el detector
