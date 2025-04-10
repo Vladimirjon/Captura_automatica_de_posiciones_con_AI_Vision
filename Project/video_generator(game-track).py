@@ -120,7 +120,6 @@ def patched_torch_load(*args, **kwargs):
 torch.load = patched_torch_load
 # --------------------------------------------------------
 
-# ==================== Clases para seguimiento del tablero ====================
 @dataclass
 class Piece:
     type: str          # 'amazona' o 'flecha'
@@ -187,7 +186,6 @@ class BoardTracker:
     def get_arrows_positions(self) -> List[Tuple[int, int]]:
         return [pos for pos, piece in self.pieces.items() if piece.type == 'flecha']
 
-# ==================== Función para detectar la cuadrícula ====================
 def detect_grid_hough(warped_image, debug=False):
     gray = cv2.cvtColor(warped_image, cv2.COLOR_BGR2GRAY)
     blurred = cv2.GaussianBlur(gray, (5, 5), 0)
@@ -247,7 +245,6 @@ def detect_grid_hough(warped_image, debug=False):
     else:
         return np.linspace(0, height, 9), np.linspace(0, width, 9)
 
-# ==================== Funciones para gestionar e imprimir el tablero ====================
 def create_board_matrix(board_tracker: BoardTracker) -> List[List[str]]:
     board = [["." for _ in range(board_tracker.grid_size[1])] for _ in range(board_tracker.grid_size[0])]
     for (row, col), piece in board_tracker.pieces.items():
@@ -266,13 +263,12 @@ def print_board(board: List[List[str]]) -> None:
 # ==================== Función principal ====================
 def main():
     global consecutive_count, candidate_board, move_buffer, expected_turn
-    # URL del stream, ajusta según tu red
     url = "http://192.168.1.4:8080/video"
     output_dir = r"C:\Users\johan\OneDrive\Escritorio\Universidad\Proyectos Intersemestrales\Captura_automatica_de_posiciones_con_AI_Vision\Project\sgf_format"
     os.makedirs(output_dir, exist_ok=True)
     movimientos_path = os.path.join(output_dir, "movimientos.txt")
 
-    # Estado inicial esperado del tablero:
+    # Estado inicial esperado:
     # . . B . . B . .
     # . . . . . . . .
     # B . . . . . . B
@@ -293,7 +289,11 @@ def main():
     ]
     valid_white = 4
     valid_black = 4
-    expected_turn = "W"  # Se espera que las blancas muevan primero
+    expected_turn = "W"
+
+    # VideoWriter para grabar la partida en partida.avi
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    video_out = cv2.VideoWriter(os.path.join(output_dir, "partida.avi"), fourcc, 20.0, (800,800))
 
     cap = cv2.VideoCapture(url)
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
@@ -335,19 +335,17 @@ def main():
                 board_tracker.update_from_detections(results, (h_lines, v_lines))
                 current_board = create_board_matrix(board_tracker)
 
-                # Recuento de piezas detectadas
                 num_arrows = len(board_tracker.get_arrows_positions())
                 num_black = len(board_tracker.get_amazons_positions("black"))
                 num_white = len(board_tracker.get_amazons_positions("white"))
 
-                # Validar que se reconozca la estructura (4 amazonas por color)
                 if num_black != valid_black or num_white != valid_white:
                     print(f"Ignorando frame inválido: Amazonas negras={num_black}, Amazonas blancas={num_white}")
                     consecutive_count = 0
                     candidate_board = None
                     continue
 
-                # Mecanismo de estabilización (frames consecutivos iguales)
+                # Estabilización del estado del tablero
                 if candidate_board is None:
                     candidate_board = current_board
                     consecutive_count = 1
@@ -360,15 +358,12 @@ def main():
 
                 if consecutive_count >= REQUIRED_CONSECUTIVE_FRAMES:
                     if candidate_board != last_board:
-                        # Primero, validamos que el movimiento (compara last_board y candidate_board) sea válido
                         if validate_move(last_board, candidate_board):
                             move_str = detect_move(last_board, candidate_board)
                             if move_str:
-                                # Verificamos que el turno sea el esperado
                                 if move_str[0] != expected_turn:
                                     print(f"Turno inválido: se esperaba {expected_turn} pero se detectó {move_str[0]}. Movimiento descartado.")
                                 else:
-                                    # Movimiento válido, se actualiza el turno: alterna de "W" a "B" o viceversa
                                     expected_turn = "B" if expected_turn == "W" else "W"
                                     move_buffer.append(move_str)
                                     if len(move_buffer) == 2:
@@ -388,17 +383,17 @@ def main():
                     print("Tablero detectado con éxito (Orientación fija por ID).")
                     board_printed_once = True
 
-                annotated = results[0].plot()
                 if h_lines is not None and v_lines is not None:
                     for y in h_lines:
-                        cv2.line(annotated, (0, int(y)), (800, int(y)), (0, 255, 0), 2)
+                        cv2.line(warped, (0, int(y)), (800, int(y)), (0, 255, 0), 2)
                     for x in v_lines:
-                        cv2.line(annotated, (int(x), 0), (int(x), 800), (0, 255, 0), 2)
-                cv2.imshow("Tablero Amazons", annotated)
+                        cv2.line(warped, (int(x), 0), (int(x), 800), (0, 255, 0), 2)
+                cv2.imshow("Tablero Amazons", warped)
+                # Graba el frame (warped) anotado en el video
+                video_out.write(warped)
                 
         key = cv2.waitKey(1) & 0xFF
         if key == 27 or cv2.getWindowProperty("Tablero Amazons", cv2.WND_PROP_VISIBLE) < 1:
-            # Si queda un movimiento sin emparejar, se registra al final
             if move_buffer:
                 pair_line = "(;" + " ; ".join(move_buffer) + ")"
                 with open(movimientos_path, "a", encoding="utf-8") as f:
@@ -406,6 +401,7 @@ def main():
             break
 
     cap.release()
+    video_out.release()  # Liberamos también el VideoWriter
     cv2.destroyAllWindows()
 
 if __name__ == "__main__":
