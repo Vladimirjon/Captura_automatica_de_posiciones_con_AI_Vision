@@ -5,7 +5,7 @@ import os
 
 aruco_dict = cv2.aruco.Dictionary_get(cv2.aruco.DICT_4X4_50)
 
-output_folder = r"C:\Users\johan\OneDrive\Escritorio\Universidad\Proyectos Intersemestrales\Captura_automatica_de_posiciones_con_AI_Vision\Project\img"
+output_folder = r"C:\Users\johan\Desktop\Universidad\Proyectos Intersemestrales\Captura_automatica_de_posiciones_con_AI_Vision\Project\img"
 os.makedirs(output_folder, exist_ok=True)
 
 for marker_id in range(4):

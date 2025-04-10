@@ -264,7 +264,7 @@ def print_board(board: List[List[str]]) -> None:
 def main():
     global consecutive_count, candidate_board, move_buffer, expected_turn
     url = "http://192.168.1.4:8080/video"
-    output_dir = r"C:\Users\johan\OneDrive\Escritorio\Universidad\Proyectos Intersemestrales\Captura_automatica_de_posiciones_con_AI_Vision\Project\sgf_format"
+    output_dir = r"C:\Users\johan\Desktop\Universidad\Proyectos Intersemestrales\Captura_automatica_de_posiciones_con_AI_Vision\Project\sgf_format"
     os.makedirs(output_dir, exist_ok=True)
     movimientos_path = os.path.join(output_dir, "movimientos.txt")
 
@@ -303,7 +303,7 @@ def main():
     board_tracker = BoardTracker(grid_size=(8,8))
 
     board_printed_once = False
-    model = YOLO(r"C:\Users\johan\OneDrive\Escritorio\Universidad\Proyectos Intersemestrales\Captura_automatica_de_posiciones_con_AI_Vision\runs\detect\train6\weights\best.pt")
+    model = YOLO(r"C:\Users\johan\Desktop\Universidad\Proyectos Intersemestrales\Captura_automatica_de_posiciones_con_AI_Vision\runs\detect\train6\weights\best.pt")
     if not cap.isOpened():
         print("No se pudo abrir el stream de video.")
         return

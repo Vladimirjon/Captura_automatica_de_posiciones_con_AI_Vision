@@ -1,23 +1,21 @@
 import torch
 
-# Define la función parcheada de torch.load
+# Parcheo de weights para evitar error de "weights_only"
 def patched_torch_load(*args, **kwargs):
     kwargs['weights_only'] = False
     return original_torch_load(*args, **kwargs)
 
 if __name__ == '__main__':
-    # Esto debe estar dentro del bloque main para evitar problemas de multiprocessing en Windows
     original_torch_load = torch.load
     torch.load = patched_torch_load
 
     from ultralytics import YOLO
-
-    # Cargar el modelo
     model = YOLO("yolov8n.pt")
 
-    # Especificar el entrenamiento
+    # Parametros de entrenamiento
     model.train(
-        data=r"C:\Users\johan\OneDrive\Escritorio\Universidad\Proyectos Intersemestrales\Captura_automatica_de_posiciones_con_AI_Vision\Models\Amazons game recognition.v4i.yolov8\data.yaml",
+        # Especificar la ruta del conjunto de datos
+        data=r"C:\Users\johan\Desktop\Universidad\Proyectos Intersemestrales\Captura_automatica_de_posiciones_con_AI_Vision\Models\Amazons game recognition.v4i.yolov8\data.yaml",
         epochs=50,
         batch=16,
         imgsz=640,

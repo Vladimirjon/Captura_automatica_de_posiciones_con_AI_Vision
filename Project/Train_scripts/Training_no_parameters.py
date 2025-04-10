@@ -13,6 +13,6 @@ model = YOLO("yolov8n.pt")
 # Especficar el modelo a entrenar, la direccion de data.yml, epocas
 # Se puede especificar el batch size, el learning rate y el optimizer
 model.train(
-    data=r"C:\Users\johan\OneDrive\Escritorio\Universidad\Proyectos Intersemestrales\Captura_automatica_de_posiciones_con_AI_Vision\Models\Amazons game recognition.v3-v3_amazons_recongnition.yolov8\data.yaml",
+    data=r"C:\Users\johan\Desktop\Universidad\Proyectos Intersemestrales\Captura_automatica_de_posiciones_con_AI_Vision\Models\Amazons game recognition.v3-v3_amazons_recongnition.yolov8\data.yaml",
     epochs=100
 )
